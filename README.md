@@ -4,6 +4,10 @@ threads. Manages reading and writing into a _circular buffer_. Handles
 thread synchronization only. The ring buffer is implemented externally.
 Formally verified using PROMELA/Spin model.
 
+TFF is designed such that this _rqueue_ is the sole point where different
+threads interact. (Apart from reading immutable shared data, or shared
+frame data managed by the _rqueue_.)
+
 Data consists of _frames_, each having sequential _time indices_. The
 queue is accessed in three ways:
 

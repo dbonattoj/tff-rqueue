@@ -15,6 +15,6 @@ add_compile_options(-Wall -Wextra -Wno-sign-compare)
 
 # Test
 file(GLOB_RECURSE TEST_SRC "test/*.cc" "src/*")
-add_executable(tff_nd_test ${TEST_SRC})
-target_compile_definitions(tff_nd_test PRIVATE TFF_ND_STANDALONE)
-add_test(COMMAND tff_nd_test)
+add_executable(tff_rqueue_test ${TEST_SRC})
+target_compile_definitions(tff_rqueue_test PRIVATE TFF_ND_STANDALONE)
+add_test(COMMAND tff_rqueue_test)

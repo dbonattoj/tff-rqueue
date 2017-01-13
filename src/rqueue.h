@@ -56,7 +56,7 @@ public:
 	
 	read_handle(time_unit start_t, const const_wraparound_view_type& vw) :
 		available_(true),
-		start_time(start_t),
+		start_time_(start_t),
 		view_(vw) { }
 	
 	read_handle(const read_handle&) = delete;

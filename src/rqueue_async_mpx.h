@@ -169,7 +169,7 @@ private:
 
 template<typename Ring>
 class rqueue_async_mpx<Ring>::read_handle : public rqueue<Ring>::read_handle {
-	using base = rqueue<Ring>::read_handle;
+	using base = typename rqueue<Ring>::read_handle;
 	
 public:
 	using lock_type = std::shared_lock<shared_mutex_type>;
@@ -182,13 +182,9 @@ public:
 	
 	read_handle(time_unit start_t, const const_wraparound_view_type& vw, lock_type&& lock) :
 		base(start_t, vw),
-		lock(std::move(lock)) { }
+		lock_(std::move(lock)) { }
 
 	virtual ~read_handle() { }
-	
-	bool available() const { return available_; }
-	time_unit start_time() const { return start_time_; }
-	const const_wraparound_view_type& view() const { return view_; }
 };
 
 
