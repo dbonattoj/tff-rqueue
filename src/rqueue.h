@@ -2,8 +2,19 @@
 #define TFF_RQUEUE_H_
 
 #include "common.h"
+#include "rqueue_base.h"
+#include "rqueue_async_mpx.h"
+
+#include <memory>
+#include <utility>
 
 namespace tff {
+
+enum class rqueue_variant {
+	sync,
+	async,
+	async_multiplex
+};
 
 template<typename Ring>
 class rqueue {
@@ -20,54 +31,71 @@ public:
 	
 private:
 	ring_type ring_;
+	std::unique_ptr<rqueue_base> base_;
 	
-	virtual void end_write_(bool success) = 0;
+	rqueue(const rqueue&) = delete;
+	rqueue& operator=(const rqueue&) = delete;
 	
 public:
-	explicit rqueue(std::size_t cap) : ring_(cap) { }
-		
-	virtual ~rqueue() { }
+	rqueue(rqueue_variant variant, std::size_t capacity) :
+		ring_(capacity)
+	{
+		if(variant == rqueue_variant::async_multiplex)
+			base_.reset(new rqueue_async_mpx(capacity));
+		else throw 1;
+	}
 	
 	const ring_type& ring() const { return ring_; }
 	ring_type& ring() { return ring_; }
 	std::size_t capacity() const { return ring_.capacity(); }
 
-	virtual void request(time_span) = 0;
-	virtual void stop() = 0;
+	void request(time_span span) {
+		base_->request(span);
+	}
 	
-	virtual read_handle read(time_span) = 0;
+	void stop() {
+		base_->stop();
+	}
 	
-	virtual write_handle write() = 0;
+	read_handle read(time_span span) {
+		return read_handle(*this, base_->begin_read(span));
+	}
+	
+	write_handle write() {
+		return write_handle(*this, base_->begin_write());
+	}
 };
 
 
 template<typename Ring>
 class rqueue<Ring>::read_handle {
 private:
-	bool available_;
-	time_unit start_time_;
+	rqueue& queue_;
+	rqueue_base::read_result base_;
 	const_wraparound_view_type view_;
 	
 public:
-	read_handle() :
-		available_(false),
-		start_time_(-1),
-		view_() { }
+	read_handle(rqueue& q, const rqueue_base::read_result& base) :
+		queue_(q),
+		base_(base)
+	{
+		if(base.flag == rqueue_base::read_result::normal)
+			view_ = queue_.ring().const_wraparound_view(base.start_index, base.duration);
+	}
 	
-	read_handle(time_unit start_t, const const_wraparound_view_type& vw) :
-		available_(true),
-		start_time_(start_t),
-		view_(vw) { }
+	~read_handle() {
+		if(valid()) queue_.base_->end_read();
+	}
 	
 	read_handle(const read_handle&) = delete;
 	read_handle(read_handle&&) = default;
 	read_handle& operator=(const read_handle&) = delete;
 	read_handle& operator=(read_handle&&) = default;
 	
-	virtual ~read_handle() { }
-	
-	bool available() const { return available_; }
-	time_unit start_time() const { return start_time_; }
+	bool valid() const { return (base_.flag == rqueue_base::read_result::normal); }
+	time_unit start_time() const { return base_.start_time; }
+	time_unit end_time() const { return base_.start_time + base_.duration; }
+	time_unit duration() const { return base_.duration; }
 	const const_wraparound_view_type& view() const { return view_; }
 };
 
@@ -75,48 +103,44 @@ public:
 template<typename Ring>
 class rqueue<Ring>::write_handle {
 private:
-	rqueue* queue_;
-	const bool stopped_;
-	
-	time_unit time_;
+	rqueue& queue_;
+	rqueue_base::write_result base_;
 	frame_type frame_;
 	
 	bool committed_;
 	
 public:
-	write_handle() :
-		queue_(nullptr),
-		stopped_(true),
-		time_(-1),
-		frame_(),
-		committed_(true) { }
-
-	write_handle(rqueue& q, time_unit t, const frame_type& fr) :
-		queue_(&q),
-		stopped_(false),
-		time_(t),
-		frame_(fr),
-		committed_(false) { }
+	write_handle(rqueue& q, const rqueue_base::write_result& base) :
+		queue_(q),
+		base_(base),
+		committed_(true)
+	{
+		if(base.flag == rqueue_base::write_result::normal) {
+			frame_ = queue_.ring()[base_.index];
+			committed_ = false;
+		}
+	}
+	
+	~write_handle() {
+		if(valid() && !committed_)
+			queue_.base_->end_write(false);
+	}
 	
 	write_handle(const write_handle&) = delete;
 	write_handle(write_handle&&) = default;
 	write_handle& operator=(const write_handle&) = delete;
 	write_handle& operator=(write_handle&&) = default;
-
-	virtual ~write_handle() {
-		if(queue_ != nullptr && !committed_)
-			queue_->end_write(false);
-	}
 	
-	bool has_stopped() const { return stopped_; }
+	bool valid() const { return (base_.flag == rqueue_base::write_result::normal); }
+	
+	bool has_stopped() const { return (base_.flag == rqueue_base::write_result::stopped); }
+	time_unit time() const { return base_.time; }
+	const frame_type& frame() const { return frame_; }
 	
 	void commit() {
-		queue_.end_write(true);
+		queue_.base_->end_write(true);
 		committed_ = true;
 	}
-	
-	time_unit time() const { return time_; }
-	const frame_type& frame() const { return frame_; }
 };
 
 }

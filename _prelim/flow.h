@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <thread>
-#include <driver_types.h>
 #include "utility.h"
 #include "queue.h"
 #include "queue_sync.h"
