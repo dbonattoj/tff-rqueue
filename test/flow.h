@@ -11,7 +11,8 @@
 #include <vector>
 #include <thread>
 #include <string>
-#include <pthread.h>
+#include <iostream>
+//#include <pthread.h>
 
 namespace tff { namespace test {
 
@@ -32,7 +33,7 @@ inline const std::string& thread_name(const std::string& new_name) {
 	static thread_local std::string name;
 	if(! new_name.empty()) {
 		name = new_name;
-		pthread_setname_np(pthread_self(), new_name.c_str());
+		//pthread_setname_np(pthread_self(), new_name.c_str());
 	}
 	return name;
 }
@@ -79,7 +80,7 @@ public:
 			
 			time_unit frame_t = hd->start_time();
 			for(std::ptrdiff_t off = 0; off < hd->view().size(); ++off, ++frame_t) {
-				const frame& frame = *hd->view()[off];
+				const frame& frame = *hd->view().at(off);
 				if(frame.flag == frame::ok) REQUIRE(frame.value == frame_t);
 			}
 		
@@ -111,7 +112,7 @@ public:
 		this->do_stop();
 	}
 
-	virtual void do_request(time_span span) { }
+	virtual void do_request(time_span) { }
 	virtual void do_stop() { }
 	virtual std::unique_ptr<read_handle_type> read(time_span) { }
 	virtual void end_read() { }
@@ -186,6 +187,7 @@ public:
 		time_span span{t, t+1};
 		request(span);
 		read_predecessors(t, eof);
+		std::cout << t << std::endl;
 	}
 };
 

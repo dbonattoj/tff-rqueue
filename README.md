@@ -31,20 +31,20 @@ queue is accessed in three ways:
    sequential frames in advance, before they are read.
 
 
-Polymorphic class with 3 variants:
+3 variants for different use cases:
 
- * `rqueue_sync`: Writer and reader(s) are one same thread. Can have multiple
+ * `sync`: Writer and reader(s) are one same thread. Can have multiple
    readers (sequential). Writer gets invoked synchronously when needed through
    callback.
 
    Requester can be on a different thread or on same thread.
 
- * `rqueue_async`: Writer and reader on different threads. One reader only.
+ * `async`: Writer and reader on different threads. One reader only.
    Reader waits for frames to become available. Writer is invoked asynchrously,
    and is running and waiting on separate thread.
 
    Requester may be on reader thread, or on a third thread.
 
- * `rqueue_async_mpx`: Like `rqueue_async`, but can have multiple concurrent
+ * `async_multiplex`: Like `async`, but can have multiple concurrent
    readers, one different threads or on same threads.
 

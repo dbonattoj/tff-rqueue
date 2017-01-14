@@ -15,7 +15,7 @@ namespace tff {
 class rqueue_async_mpx : public rqueue_base {
 private:
 	#if __cplusplus >= 201500
-	using shared_mutex_type = std::shared_mutex;
+	using shared_mutex_type = std::shared_timed_mutex;
 	#else
 	using shared_mutex_type = std::shared_timed_mutex;
 	#endif
@@ -38,7 +38,7 @@ private:
 	time_unit available_duration_() const {
 		if(full_) return capacity_;
 		else if(head_ <= tail_) return tail_ - head_;
-		else return capacity() - (head_ - tail_);
+		else return capacity_ - (head_ - tail_);
 	}
 	
 	time_unit tail_time_() const {

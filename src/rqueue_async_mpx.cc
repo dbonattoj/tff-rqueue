@@ -1,4 +1,5 @@
 #include "rqueue_async_mpx.h"
+#include <iostream>
 
 namespace tff {
 
@@ -16,6 +17,7 @@ rqueue_async_mpx::~rqueue_async_mpx() { }
 
 
 void rqueue_async_mpx::request(time_span span) {
+	assert(span.end - span.begin <= capacity());
 	{
 		std::lock_guard<std::mutex> lock(state_mutex_);
 		request_time_span_ = span;
@@ -78,7 +80,7 @@ retry:
 			goto retry;
 			
 		} else if(! full_) {
-			return write_result(write_result::normal, tail_time, tail_);
+			return write_result(write_result::normal, tail_, tail_time);
 			
 		} else {
 			assert(head_ == tail_);
@@ -88,7 +90,7 @@ retry:
 			head_ = (tail_ + 1) % capacity();
 			head_time_++;
 			full_ = false;
-			return write_result(write_result::normal, tail_time, tail_);
+			return write_result(write_result::normal, tail_, tail_time);
 		}
 		
 	} else {
@@ -97,7 +99,7 @@ retry:
 		tail_ = head_;
 		full_ = false;
 		lowest_reader_head_time_ = -1;
-		return write_result(write_result::normal, head_time_, head_);
+		return write_result(write_result::normal, head_, head_time_);
 	}
 
 }

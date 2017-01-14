@@ -26,7 +26,7 @@ const std::string& thread_name(const std::string& new_name) {
 	static thread_local std::string name;
 	if(! new_name.empty()) {
 		name = new_name;
-		pthread_setname_np(pthread_self(), new_name.c_str());
+		//pthread_setname_np(pthread_self(), new_name.c_str());
 	}
 	return name;
 }

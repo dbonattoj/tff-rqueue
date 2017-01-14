@@ -22,8 +22,8 @@ public:
 	
 	std::size_t capacity() const { return content_.size(); }
 	
-	frame_type operator[](index_type i) { return &content_[i]; }
-	const_frame_type operator[](index_type i) const { return &content_[i]; }
+	frame_type operator[](index_type i) { return &content_.at(i); }
+	const_frame_type operator[](index_type i) const { return &content_.at(i); }
 	
 	wraparound_view_type wraparound_view(index_type start, std::size_t dur) {
 		wraparound_view_type out;

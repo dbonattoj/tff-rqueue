@@ -70,27 +70,38 @@ public:
 template<typename Ring>
 class rqueue<Ring>::read_handle {
 private:
-	rqueue& queue_;
+	rqueue* queue_;
 	rqueue_base::read_result base_;
 	const_wraparound_view_type view_;
 	
 public:
 	read_handle(rqueue& q, const rqueue_base::read_result& base) :
-		queue_(q),
+		queue_(&q),
 		base_(base)
 	{
 		if(base.flag == rqueue_base::read_result::normal)
-			view_ = queue_.ring().const_wraparound_view(base.start_index, base.duration);
+			view_ = queue_->ring().const_wraparound_view(base.start_index, base.duration);
 	}
 	
 	~read_handle() {
-		if(valid()) queue_.base_->end_read();
+		if(queue_ != nullptr && valid()) queue_->base_->end_read();
 	}
 	
 	read_handle(const read_handle&) = delete;
-	read_handle(read_handle&&) = default;
 	read_handle& operator=(const read_handle&) = delete;
-	read_handle& operator=(read_handle&&) = default;
+
+	read_handle(read_handle&& other) :
+		queue_(other.queue_),
+		base_(other.base_),
+		view_(std::move(other.view_)) { other.queue_ = nullptr; }
+
+	read_handle& operator=(read_handle&& other) {
+		using std::swap;
+		swap(queue_, other.queue_);
+		swap(base_, other.base_);
+		swap(view_, other.view_);
+		return *this;
+	}
 	
 	bool valid() const { return (base_.flag == rqueue_base::read_result::normal); }
 	time_unit start_time() const { return base_.start_time; }
@@ -103,7 +114,7 @@ public:
 template<typename Ring>
 class rqueue<Ring>::write_handle {
 private:
-	rqueue& queue_;
+	rqueue* queue_;
 	rqueue_base::write_result base_;
 	frame_type frame_;
 	
@@ -111,25 +122,36 @@ private:
 	
 public:
 	write_handle(rqueue& q, const rqueue_base::write_result& base) :
-		queue_(q),
+		queue_(&q),
 		base_(base),
 		committed_(true)
 	{
 		if(base.flag == rqueue_base::write_result::normal) {
-			frame_ = queue_.ring()[base_.index];
+			frame_ = queue_->ring()[base_.index];
 			committed_ = false;
 		}
 	}
 	
 	~write_handle() {
-		if(valid() && !committed_)
-			queue_.base_->end_write(false);
+		if(queue_ != nullptr && valid() && !committed_)
+			queue_->base_->end_write(false);
 	}
 	
 	write_handle(const write_handle&) = delete;
-	write_handle(write_handle&&) = default;
 	write_handle& operator=(const write_handle&) = delete;
-	write_handle& operator=(write_handle&&) = default;
+
+	write_handle(write_handle&& other) :
+		queue_(other.queue_),
+		base_(other.base_),
+		frame_(std::move(other.frame_)) { other.queue_ = nullptr; }
+
+	write_handle& operator=(write_handle&& other) {
+		using std::swap;
+		swap(queue_, other.queue_);
+		swap(base_, other.base_);
+		swap(frame_, other.frame_);
+		return *this;
+	}
 	
 	bool valid() const { return (base_.flag == rqueue_base::write_result::normal); }
 	
@@ -138,7 +160,7 @@ public:
 	const frame_type& frame() const { return frame_; }
 	
 	void commit() {
-		queue_.base_->end_write(true);
+		queue_->base_->end_write(true);
 		committed_ = true;
 	}
 };

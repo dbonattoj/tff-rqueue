@@ -6,7 +6,27 @@
 using namespace tff;
 using namespace tff::test;
 
-TEST_CASE("rqueue_async_mpx") {
+TEST_CASE("rqueue_async_mpx: basic") {
+	async_node A("A");
+	sink_node S("S");
+
+	A.prefetch = 10;
+	A.eof_time = 100;
+
+	S.request_connections.push_back({&A, 1, 1});
+
+	S.read_connections.push_back({&A, 1, 1});
+
+	thread_name("S");
+	time_unit t = 0;
+	bool eof = false;
+	while (!eof) S.process(t++, eof);
+
+	S.stop();
+}
+
+/*
+TEST_CASE("rqueue_async_mpx: double multiplex") {
 	async_node M("N"), N("M"), A("A"), B("B"), C("C");
 	sink_node S("S");
 
@@ -43,3 +63,4 @@ TEST_CASE("rqueue_async_mpx") {
 
 	S.stop();
 }
+ */
