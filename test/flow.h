@@ -236,7 +236,7 @@ public:
 		time_span span{t, t+1};
 		request(span);
 		read_predecessors(t, eof);
-		std::cout << t << std::endl;
+		//std::cout << t << std::endl;
 	}
 };
 

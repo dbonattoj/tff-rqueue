@@ -3,8 +3,8 @@
 
 #include "common.h"
 #include "rqueue_base.h"
-#include "rqueue_sync.h"
-#include "rqueue_async.h"
+#include "sync.h"
+#include "async.h"
 #include "rqueue_async_mpx.h"
 
 #include <memory>

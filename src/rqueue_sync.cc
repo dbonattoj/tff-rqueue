@@ -1,4 +1,4 @@
-#include "rqueue_sync.h"
+#include "sync.h"
 
 namespace tff {
 

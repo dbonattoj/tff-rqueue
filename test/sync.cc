@@ -7,8 +7,8 @@ using namespace tff;
 using namespace tff::test;
 
 
-TEST_CASE("async_mpx: basic") {
-	async_node A("A", 15, false);
+TEST_CASE("rqueue sync: basic") {
+	sync_node A("A", 15);
 	sink_node S("S");
 
 	auto test = [&]() {
@@ -16,7 +16,6 @@ TEST_CASE("async_mpx: basic") {
 		REQUIRE_FALSE(S.test_failure.load());
 	};
 	
-	A.prefetch = 10;
 	A.eof_time = 100;
 
 	S.request_connections.push_back({&A, 1, 1});
@@ -40,11 +39,11 @@ TEST_CASE("async_mpx: basic") {
 
 
 
-/*
-TEST_CASE("async_mpx: multiplex") {
-	async_node M("M", true);
-	async_node A("A", false);
-	async_node B("B", false);
+
+TEST_CASE("rqueue sync: multiplex") {
+	sync_node M("M", 15);
+	sync_node A("A", 15);
+	sync_node B("B", 15);
 	sink_node S("S");
 	
 	auto test = [&]() {
@@ -54,9 +53,6 @@ TEST_CASE("async_mpx: multiplex") {
 		REQUIRE_FALSE(S.test_failure.load());
 	};
 
-	A.prefetch = 10;
-	M.prefetch = 10;
-	B.prefetch = 10;
 	M.eof_time = 100;
 
 	S.request_connections.push_back({&M, 0, 0});
@@ -83,12 +79,16 @@ TEST_CASE("async_mpx: multiplex") {
 	S.stop();
 	test();
 }
-*/
 
 
-/*
-TEST_CASE("async_mpx: double multiplex") {
-	async_node M("N", true), N("M", true), A("A", false), B("B", false), C("C", false);
+
+
+TEST_CASE("rqueue sync: double multiplex") {
+	sync_node M("N", 15);
+ 	sync_node N("M", 15);
+ 	sync_node A("A", 15);
+ 	sync_node B("B", 15);
+ 	sync_node C("C", 15);
 	sink_node S("S");
 	
 	auto test = [&]() {
@@ -100,11 +100,6 @@ TEST_CASE("async_mpx: double multiplex") {
 		REQUIRE_FALSE(S.test_failure.load());
 	};
 
-	M.prefetch = 3;
-	N.prefetch = 3;
-	A.prefetch = 3;
-	B.prefetch = 3;
-	C.prefetch = 3;
 	N.eof_time = 100;
 
 	S.request_connections.push_back({&N, 1, 0});
@@ -134,4 +129,3 @@ TEST_CASE("async_mpx: double multiplex") {
 	S.stop();
 	test();
 }
-*/
