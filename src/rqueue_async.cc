@@ -1,5 +1,7 @@
 #include "rqueue_async.h"
 
+#include <iostream>
+
 namespace tff {
 
 rqueue_async::rqueue_async(std::size_t capacity) :

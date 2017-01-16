@@ -41,7 +41,7 @@ TEST_CASE("rqueue async: basic") {
 
 
 TEST_CASE("rqueue async: multiplex") {
-	async_node M("M", 15, true);
+	async_node M("M", 15, false);
 	async_node A("A", 15, false);
 	async_node B("B", 15, false);
 	sink_node S("S");
