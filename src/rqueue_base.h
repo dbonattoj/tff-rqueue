@@ -1,6 +1,9 @@
 #ifndef TFF_RQUEUE_BASE_H_
 #define TFF_RQUEUE_BASE_H_
 
+#include <cstddef>
+#include <functional>
+
 namespace tff {
 
 class rqueue_base {
@@ -32,8 +35,9 @@ public:
 			start_time(start_t),
 			duration(dur) { }
 	};
-	
-public:
+
+	using sync_writer_function = std::function<bool(const write_result&)>;
+
 	virtual ~rqueue_base() { }
 	
 	virtual std::size_t capacity() const = 0;
@@ -43,7 +47,8 @@ public:
 	
 	virtual read_result begin_read(time_span) = 0;
 	virtual void end_read() = 0;
-	
+
+	virtual void set_sync_writer(sync_writer_function) { }
 	virtual write_result begin_write() = 0;
 	virtual void end_write(bool commit) = 0;
 };

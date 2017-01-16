@@ -6,7 +6,7 @@
 using namespace tff;
 using namespace tff::test;
 
-TEST_CASE("rqueue_async_mpx: basic") {
+TEST_CASE("async_mpx: basic") {
 	async_node A("A");
 	sink_node S("S");
 
@@ -25,8 +25,43 @@ TEST_CASE("rqueue_async_mpx: basic") {
 	S.stop();
 }
 
+
+TEST_CASE("async_mpx: multiplex") {
+	async_node M("M");
+	async_node A("A");
+	async_node B("B");
+	sink_node S("S");
+
+	A.prefetch = 10;
+	M.prefetch = 10;
+	B.prefetch = 10;
+	M.eof_time = 100;
+
+	S.request_connections.push_back({&M, 0, 0});
+	S.request_connections.push_back({&A, 0, 0});
+	S.request_connections.push_back({&B, 0, 0});
+
+	S.read_connections.push_back({&A, 0, 0});
+	S.read_connections.push_back({&B, 0, 0});
+	A.read_connections.push_back({&M, 0, 0});
+	B.read_connections.push_back({&M, 0, 0});
+
+	thread_name("S");
+
+	for(int i = 0; 1||i < 1; ++i) {
+		time_unit t = 0;
+		bool eof = false;
+		while(!eof) S.process(t++, eof);
+		t = 0 - 2;
+		eof = false;
+		while(!eof) S.process(t += 2, eof);
+	}
+
+	S.stop();
+}
+
 /*
-TEST_CASE("rqueue_async_mpx: double multiplex") {
+TEST_CASE("async_mpx: double multiplex") {
 	async_node M("N"), N("M"), A("A"), B("B"), C("C");
 	sink_node S("S");
 
