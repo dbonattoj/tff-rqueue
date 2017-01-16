@@ -8,7 +8,7 @@ rqueue_sync::rqueue_sync(std::size_t capacity) :
 	head_(0),
 	tail_(0),
 	full_(false),
-	request_time_span(time_span(0, 0)),
+	request_time_span_{time_span(0, 0)},
 	active_readers_(0) { }
 
 
@@ -16,21 +16,34 @@ rqueue_sync::~rqueue_sync() {}
 
 
 bool rqueue_sync::write_next_(time_span request_time_span) {
-	time_unit tail_time = tail_time_();
-
-	write_result write(write_result::normal, -1, -1);
-
-	if(request_time_span.begin >= head_time_ && request_time_span.begin <= tail_time) {
-		if(tail_time >= request_time_end) {
+	if(request_time_span.begin >= head_time_ && request_time_span.begin <= tail_time_()) {
+		if(tail_time_() >= request_time_span.end) {
 			return false;
-
-		} else if(! full_) {
-
+			
+		} else if(full_) {
+			assert(head_ == tail_);
+			if(active_readers_ > 0) return false;
+			head_ = (tail_ + 1) % capacity_;
+			head_time_++;
+			full_ = false;
 		}
 
 	} else {
-
+		if(active_readers_ > 0) return false;
+		head_time_ = request_time_span.begin;
+		tail_ = head_;
+		full_ = false;
 	}
+	
+	write_result write_res(write_result::normal, tail_, tail_time_());
+	bool write_success = sync_writer_(write_res);
+	
+	if(write_success) {
+		tail_ = (tail_ + 1) % capacity();
+		if(tail_ == head_) full_ = true;
+	}
+	
+	return write_success;
 }
 
 
@@ -40,6 +53,7 @@ void rqueue_sync::request(time_span span) {
 }
 
 void rqueue_sync::stop() {}
+
 
 auto rqueue_sync::begin_read(time_span span) -> read_result {
 	time_span request_time_span = request_time_span_.load();
@@ -73,7 +87,7 @@ void rqueue_sync::set_sync_writer(sync_writer_function func) {
 }
 
 
-auto rqueue_sync::begin_write() -> rqueue_sync {
+auto rqueue_sync::begin_write() -> write_result {
 	throw std::logic_error("use write callback");
 }
 

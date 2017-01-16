@@ -6,10 +6,16 @@
 using namespace tff;
 using namespace tff::test;
 
+
 TEST_CASE("async_mpx: basic") {
-	async_node A("A");
+	async_node A("A", 15, false);
 	sink_node S("S");
 
+	auto test = [&]() {
+		REQUIRE_FALSE(A.test_failure.load());
+		REQUIRE_FALSE(S.test_failure.load());
+	};
+	
 	A.prefetch = 10;
 	A.eof_time = 100;
 
@@ -18,19 +24,35 @@ TEST_CASE("async_mpx: basic") {
 	S.read_connections.push_back({&A, 1, 1});
 
 	thread_name("S");
-	time_unit t = 0;
-	bool eof = false;
-	while (!eof) S.process(t++, eof);
+	for(int i = 0; i < 1; ++i) {
+		time_unit t = 0;
+		bool eof = false;
+		while(!eof) { S.process(t++, eof); test(); }
+		
+		t = 0 - 2;
+		eof = false;
+		while(!eof) { S.process(t += 2, eof); test(); }
+	}
 
 	S.stop();
+	test();
 }
 
 
+
+/*
 TEST_CASE("async_mpx: multiplex") {
-	async_node M("M");
-	async_node A("A");
-	async_node B("B");
+	async_node M("M", true);
+	async_node A("A", false);
+	async_node B("B", false);
 	sink_node S("S");
+	
+	auto test = [&]() {
+		REQUIRE_FALSE(M.test_failure.load());
+		REQUIRE_FALSE(A.test_failure.load());
+		REQUIRE_FALSE(B.test_failure.load());
+		REQUIRE_FALSE(S.test_failure.load());
+	};
 
 	A.prefetch = 10;
 	M.prefetch = 10;
@@ -48,22 +70,35 @@ TEST_CASE("async_mpx: multiplex") {
 
 	thread_name("S");
 
-	for(int i = 0; 1||i < 1; ++i) {
+	for(int i = 0; i < 1; ++i) {
 		time_unit t = 0;
 		bool eof = false;
-		while(!eof) S.process(t++, eof);
+		while(!eof) { S.process(t++, eof); test(); }
+		
 		t = 0 - 2;
 		eof = false;
-		while(!eof) S.process(t += 2, eof);
+		while(!eof) { S.process(t += 2, eof); test(); }
 	}
 
 	S.stop();
+	test();
 }
+*/
+
 
 /*
 TEST_CASE("async_mpx: double multiplex") {
-	async_node M("N"), N("M"), A("A"), B("B"), C("C");
+	async_node M("N", true), N("M", true), A("A", false), B("B", false), C("C", false);
 	sink_node S("S");
+	
+	auto test = [&]() {
+		REQUIRE_FALSE(M.test_failure.load());
+		REQUIRE_FALSE(N.test_failure.load());
+		REQUIRE_FALSE(A.test_failure.load());
+		REQUIRE_FALSE(B.test_failure.load());
+		REQUIRE_FALSE(C.test_failure.load());
+		REQUIRE_FALSE(S.test_failure.load());
+	};
 
 	M.prefetch = 3;
 	N.prefetch = 3;
@@ -90,12 +125,13 @@ TEST_CASE("async_mpx: double multiplex") {
 	for(int i = 0; i < 100; ++i) {
 		time_unit t = 0;
 		bool eof = false;
-		while(!eof) S.process(t++, eof);
+		while(!eof) { S.process(t++, eof); test(); }
 		t = 0 - 2;
 		eof = false;
-		while(!eof) S.process(t += 2, eof);
+		while(!eof) { S.process(t += 2, eof); test(); }
 	}
 
 	S.stop();
+	test();
 }
- */
+*/

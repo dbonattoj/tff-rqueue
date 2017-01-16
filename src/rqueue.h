@@ -3,9 +3,12 @@
 
 #include "common.h"
 #include "rqueue_base.h"
+#include "rqueue_sync.h"
+#include "rqueue_async.h"
 #include "rqueue_async_mpx.h"
 
 #include <memory>
+#include <functional>
 #include <utility>
 
 namespace tff {
@@ -29,6 +32,8 @@ public:
 	class read_handle;
 	class write_handle;
 	
+	using sync_writer_function = std::function<void(write_handle&)>;
+	
 private:
 	ring_type ring_;
 	std::unique_ptr<rqueue_base> base_;
@@ -40,15 +45,25 @@ public:
 	rqueue(rqueue_variant variant, std::size_t capacity) :
 		ring_(capacity)
 	{
-		if(variant == rqueue_variant::async_multiplex)
-			base_.reset(new rqueue_async_mpx(capacity));
-		else throw 1;
+		if(variant == rqueue_variant::sync) base_.reset(new rqueue_sync(capacity));
+		else if(variant == rqueue_variant::async) base_.reset(new rqueue_async(capacity));
+		else if(variant == rqueue_variant::async_multiplex) base_.reset(new rqueue_async_mpx(capacity));
+		else throw std::invalid_argument("invalid rqueue variant");
 	}
 	
 	const ring_type& ring() const { return ring_; }
 	ring_type& ring() { return ring_; }
 	std::size_t capacity() const { return ring_.capacity(); }
 
+	void set_sync_writer(sync_writer_function func) {
+		auto base_sync_writer = [this, func](const rqueue_base::write_result& res) -> bool {
+			write_handle handle(*this, res, false);
+			func(handle);
+			return handle.was_committed();
+		};
+		base_->set_sync_writer(base_sync_writer);
+	}
+	
 	void request(time_span span) {
 		base_->request(span);
 	}
@@ -62,7 +77,7 @@ public:
 	}
 	
 	write_handle write() {
-		return write_handle(*this, base_->begin_write());
+		return write_handle(*this, base_->begin_write(), true);
 	}
 };
 
@@ -121,13 +136,13 @@ private:
 	bool committed_;
 	
 public:
-	write_handle(rqueue& q, const rqueue_base::write_result& base) :
-		queue_(&q),
+	write_handle(rqueue& q, const rqueue_base::write_result& base, bool link_to_queue) :
+		queue_(link_to_queue ? &q : nullptr),
 		base_(base),
 		committed_(true)
 	{
 		if(base.flag == rqueue_base::write_result::normal) {
-			frame_ = queue_->ring()[base_.index];
+			frame_ = q.ring()[base_.index];
 			committed_ = false;
 		}
 	}
@@ -160,9 +175,12 @@ public:
 	const frame_type& frame() const { return frame_; }
 	
 	void commit() {
-		queue_->base_->end_write(true);
+		if(queue_ != nullptr) queue_->base_->end_write(true);
 		committed_ = true;
 	}
+	
+	bool was_committed() const { return committed_; }
+	bool linked_to_queue() const { return (queue_ != nullptr); }
 };
 
 }

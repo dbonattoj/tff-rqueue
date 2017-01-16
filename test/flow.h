@@ -11,6 +11,7 @@
 #include <vector>
 #include <thread>
 #include <string>
+#include <atomic>
 #include <iostream>
 //#include <pthread.h>
 
@@ -53,6 +54,7 @@ public:
 
 	time_unit prefetch = 0;
 	time_unit eof_time = -1;
+	std::atomic<bool> test_failure {false};
 	
 	explicit node(const std::string& nm) : name(nm) { }
 	
@@ -81,7 +83,7 @@ public:
 			time_unit frame_t = hd->start_time();
 			for(std::ptrdiff_t off = 0; off < hd->view().size(); ++off, ++frame_t) {
 				const frame& frame = *hd->view().at(off);
-				if(frame.flag == frame::ok) REQUIRE(frame.value == frame_t);
+				if(frame.flag == frame::ok && frame.value != frame_t) test_failure.store(true);
 			}
 		
 			handles.push_back(std::move(hd));
@@ -154,9 +156,9 @@ private:
 	}
 	
 public:
-	async_node(const std::string& name) :
+	async_node(const std::string& name, std::size_t capacity = 15, bool mpx = false) :
 		node(name),
-		queue_(rqueue_variant::async_multiplex, 15),
+		queue_(mpx ? rqueue_variant::async_multiplex : rqueue_variant::async, capacity),
 		thread_(&async_node::thread_main_, this) { thread_name(name); }
 
 	~async_node() override {
@@ -172,6 +174,53 @@ public:
 		thread_.join();
 	}
 
+	std::unique_ptr<read_handle_type> read(time_span span) override {
+		return std::make_unique<queue_type::read_handle>(queue_.read(span));
+	}
+};
+
+
+
+class sync_node : public node {
+private:
+	rqueue<ring_type> queue_;
+	
+	void write_(write_handle_type& hd) {
+		assert(! hd.has_stopped());
+		if(eof_time != -1 && hd.time() >= eof_time) {
+			hd.frame()->flag = frame::eof;
+			hd.commit();
+			return;
+		}
+		{
+			bool eof = false;
+			auto read_handles = read_predecessors(hd.time(), eof);
+			if(eof) {
+				hd.frame()->flag = frame::eof;
+				hd.commit();
+				return;
+			} else if(read_handles.size() == 0 && read_connections.size() > 0) {
+				// tfail
+				return;
+			}
+			process(hd);
+		}
+		hd.commit();
+	}
+	
+public:
+	sync_node(const std::string& name, std::size_t capacity = 15) :
+		node(name),
+		queue_(rqueue_variant::sync, capacity)
+	{
+		queue_.set_sync_writer(std::bind(&sync_node::write_, this, std::placeholders::_1));
+	}
+
+
+	void do_request(time_span span) override {
+		queue_.request(span);
+	}
+	
 	std::unique_ptr<read_handle_type> read(time_span span) override {
 		return std::make_unique<queue_type::read_handle>(queue_.read(span));
 	}

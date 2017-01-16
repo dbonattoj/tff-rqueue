@@ -11,6 +11,7 @@ struct time_span {
 	time_unit begin;
 	time_unit end;
 	
+	time_span() = default;
 	time_span(time_unit b, time_unit e) : begin(b), end(e) { }
 };
 
