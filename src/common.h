@@ -1,6 +1,8 @@
 #ifndef TFF_RQUEUE_COMMON_H_
 #define TFF_RQUEUE_COMMON_H_
 
+#ifdef TFF_RQUEUE_STANDALONE
+
 #include <cstddef>
 
 namespace tff {
@@ -16,5 +18,11 @@ struct time_span {
 };
 
 };
+
+#else
+
+#include "../common.h"
+
+#endif
 
 #endif

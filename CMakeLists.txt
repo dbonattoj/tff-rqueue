@@ -15,7 +15,7 @@ add_compile_options(-Wall -Wextra -Wno-sign-compare)
 # Test
 file(GLOB_RECURSE TEST_SRC "test/*.cc" "src/*")
 add_executable(tff_rqueue_test ${TEST_SRC})
-#target_compile_definitions(tff_rqueue_test PRIVATE)
+target_compile_definitions(tff_rqueue_test PRIVATE TFF_RQUEUE_STANDALONE)
 target_link_libraries(tff_rqueue_test pthread atomic)
 
 add_test(COMMAND tff_rqueue_test)

@@ -42,8 +42,9 @@ private:
 	rqueue& operator=(const rqueue&) = delete;
 	
 public:
-	rqueue(rqueue_variant variant, std::size_t capacity) :
-		ring_(capacity)
+	template<typename... Args>
+	rqueue(rqueue_variant variant, std::size_t capacity, Args&&... args) :
+		ring_(capacity, std::forward<Args>(args)...)
 	{
 		if(variant == rqueue_variant::sync) base_.reset(new rqueue_sync(capacity));
 		else if(variant == rqueue_variant::async) base_.reset(new rqueue_async(capacity));
