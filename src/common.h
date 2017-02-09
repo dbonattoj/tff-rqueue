@@ -21,7 +21,9 @@ struct time_span {
 
 #else
 
-#include "../common.h"
+#ifndef TFF_RQUEUE_HAS_DEPENDENCIES
+#error TFF_RQUEUE_HAS_DEPENDENCIES not defined before including tff-rqueue
+#endif
 
 #endif
 

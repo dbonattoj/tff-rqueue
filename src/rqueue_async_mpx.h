@@ -15,7 +15,7 @@ namespace tff {
 class rqueue_async_mpx : public rqueue_base {
 private:
 	#if __cplusplus >= 201500
-	using shared_mutex_type = std::shared_timed_mutex;
+	using shared_mutex_type = std::shared_mutex;
 	#else
 	using shared_mutex_type = std::shared_timed_mutex;
 	#endif
