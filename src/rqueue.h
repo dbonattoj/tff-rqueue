@@ -88,7 +88,7 @@ class rqueue<Ring>::read_handle {
 private:
 	rqueue* queue_;
 	rqueue_base::read_result base_;
-	const_wraparound_view_type view_;
+	optional<const_wraparound_view_type> view_;
 	
 public:
 	read_handle(rqueue& q, const rqueue_base::read_result& base) :
@@ -96,8 +96,9 @@ public:
 		base_(base)
 	{
 		if(base.flag == rqueue_base::read_result::normal)
-			view_ = queue_->ring().const_wraparound_view(base.start_index, base.duration);
+			view_.emplace(q.ring().const_wraparound_view(base.start_index, base.duration));
 	}
+	
 	
 	~read_handle() {
 		if(queue_ != nullptr && valid()) queue_->base_->end_read();
@@ -123,7 +124,7 @@ public:
 	time_unit start_time() const { return base_.start_time; }
 	time_unit end_time() const { return base_.start_time + base_.duration; }
 	time_unit duration() const { return base_.duration; }
-	const const_wraparound_view_type& view() const { return view_; }
+	const const_wraparound_view_type& view() const { return *view_; }
 };
 
 
@@ -132,7 +133,7 @@ class rqueue<Ring>::write_handle {
 private:
 	rqueue* queue_;
 	rqueue_base::write_result base_;
-	frame_type frame_;
+	optional<frame_type> frame_;
 	
 	bool committed_;
 	
@@ -143,7 +144,7 @@ public:
 		committed_(true)
 	{
 		if(base.flag == rqueue_base::write_result::normal) {
-			frame_ = q.ring()[base_.index];
+			frame_.emplace(q.ring()[base.index]);
 			committed_ = false;
 		}
 	}
@@ -173,7 +174,7 @@ public:
 	
 	bool has_stopped() const { return (base_.flag == rqueue_base::write_result::stopped); }
 	time_unit time() const { return base_.time; }
-	const frame_type& frame() const { return frame_; }
+	const frame_type& frame() const { return *frame_; }
 	
 	void commit() {
 		if(queue_ != nullptr) queue_->base_->end_write(true);

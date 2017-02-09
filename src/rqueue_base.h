@@ -19,6 +19,8 @@ public:
 			flag(fg),
 			index(idx),
 			time(t) { }
+		
+		write_result(const write_result&) = default;
 	};
 	
 	struct read_result {
@@ -34,6 +36,8 @@ public:
 			start_index(start_idx),
 			start_time(start_t),
 			duration(dur) { }
+		
+		read_result(const read_result&) = default;
 	};
 
 	using sync_writer_function = std::function<bool(const write_result&)>;

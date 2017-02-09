@@ -5,6 +5,8 @@
 
 #include <cstddef>
 
+#include <optional.hpp>
+
 namespace tff {
 
 using time_unit = std::ptrdiff_t;
@@ -17,13 +19,14 @@ struct time_span {
 	time_span(time_unit b, time_unit e) : begin(b), end(e) { }
 };
 
+using std::experimental::optional;
+using std::experimental::nullopt;
+
 };
 
 #else
 
-#ifndef TFF_RQUEUE_HAS_DEPENDENCIES
-#error TFF_RQUEUE_HAS_DEPENDENCIES not defined before including tff-rqueue
-#endif
+#include "../common.h"
 
 #endif
 
