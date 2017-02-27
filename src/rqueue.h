@@ -96,7 +96,7 @@ public:
 		base_(base)
 	{
 		if(base.flag == rqueue_base::read_result::normal)
-			view_.emplace(q.ring().const_wraparound_view(base.start_index, base.duration));
+			view_.emplace(q.ring().const_wraparound_view(base.start_index, base.start_time, base.duration));
 	}
 	
 	
@@ -144,7 +144,7 @@ public:
 		committed_(true)
 	{
 		if(base.flag == rqueue_base::write_result::normal) {
-			frame_.emplace(q.ring()[base.index]);
+			frame_.emplace(q.ring().frame_view(base.index, base.time));
 			committed_ = false;
 		}
 	}
