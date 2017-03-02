@@ -58,7 +58,7 @@ void rqueue_sync::stop() {}
 auto rqueue_sync::begin_read(time_span span) -> read_result {
 	time_span request_time_span = request_time_span_.load();
 
-	if(span.begin < request_time_span.begin || span.end <= tail_time_())
+	if(span.begin < request_time_span.begin || span.end > request_time_span.end)
 		return read_result(read_result::unavailable);
 
 	while(!(span.begin >= head_time_ && span.end <= tail_time_())) {
